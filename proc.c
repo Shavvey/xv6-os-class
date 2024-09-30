@@ -483,3 +483,25 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+int set_priority(int pid, int priority) {
+  // pointer to process (need to use pid to actually obtain it)
+  struct proc *p;
+  // acquier mutex lock for process table
+  acquire(&ptable.lock);
+
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    // loop through ptable entries and find our process
+    // using the pid given
+    if(p->pid == pid) {
+      // use a mod to clamp values to range [0,39]
+      pid = (pid % 40 + 40) % 40;
+      release(&ptable.lock);
+      // exit out with a success val
+      return 0;
+    }
+  }
+  // if we can't find the process just return an error
+  release(&ptable.lock);
+  return -1;
+}

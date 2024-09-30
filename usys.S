@@ -29,3 +29,6 @@ SYSCALL(getpid)
 SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
+// jump to syscall routine I create
+// uses trap instruction 'int' in x86 asm
+SYSCALL(set_priority)

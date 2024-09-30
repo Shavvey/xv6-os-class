@@ -89,3 +89,21 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+// the actual implementation 
+// (defintions are provided in defs.h and user.h, 
+// to provide an interface for the user)
+int sys_set_priority(void) {
+  int pid;
+  int priority;
+  if(argint(0, &pid) < 0) {
+    // sys call fails if args are not passed
+    return -1;
+  }
+  if(argint(1, &priority) < 0) {
+    // sys call fails also if second arg not passed
+    return -1;
+  } 
+  cprintf("Extract args-> PID: %d, Prior: %d\n", pid,priority);
+  // preform syscall routine with args
+  return set_priority(pid,priority);
+}
