@@ -1,3 +1,5 @@
+#define DEFAULT_PRIOR 20
+#define MAX_PRIOR 40
 // Per-CPU state
 struct cpu {
   uchar apicid;                // Local APIC ID

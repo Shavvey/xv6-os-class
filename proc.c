@@ -47,6 +47,8 @@ allocproc(void)
   return 0;
 
 found:
+  // assign default priority to process
+  p->priority = DEFAULT_PRIOR;
   p->state = EMBRYO;
   p->pid = nextpid++;
 
@@ -153,6 +155,8 @@ fork(void)
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
+    // inherit the process priority of the parent
+    np->priority = proc->priority;
     return -1;
   }
   np->sz = proc->sz;
@@ -497,7 +501,7 @@ int set_priority(int pid, int priority) {
     // using the pid given
     if(proc->pid == pid) {
       // use a mod to clamp values to range [0,39] for the priority
-      priority = (priority % 40 + 40) % 40;
+      priority = (priority % MAX_PRIOR + MAX_PRIOR) % MAX_PRIOR;
       // set the priority
       proc->priority = priority;
       // release the mutex lock on process table
