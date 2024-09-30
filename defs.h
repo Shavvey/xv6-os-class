@@ -118,6 +118,8 @@ void            wakeup(void*);
 void            yield(void);
 // newly added  function by me ;)
 int             set_priority(int,int);
+// another one
+int             get_priority(int);
 
 // swtch.S
 void            swtch(struct context**, struct context*);

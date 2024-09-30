@@ -99,6 +99,7 @@ extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
 extern int sys_set_priority(void);
+extern int sys_get_priority(void);
 
 static int (*syscalls[])(void) = {
   [SYS_fork]    sys_fork,
@@ -123,6 +124,7 @@ static int (*syscalls[])(void) = {
   [SYS_mkdir]   sys_mkdir,
   [SYS_close]   sys_close,
   [SYS_set_priority] sys_set_priority,
+  [SYS_get_priority] sys_get_priority,
 };
 // creating a table (similiar to the above table with function pointers to syscall routines)
 // that will get the name of each syscall via the index we extract using eax register

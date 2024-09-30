@@ -107,3 +107,12 @@ int sys_set_priority(void) {
   // preform syscall routine with args
   return set_priority(pid,priority);
 }
+
+int sys_get_priority(void) {
+  int pid;
+  if(argint(0,&pid) < 0) {
+    // sys call will fail if args aren't passed or can't be retrieved
+    return -1;
+  }
+  return get_priority(pid);
+}

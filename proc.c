@@ -486,22 +486,45 @@ procdump(void)
 
 int set_priority(int pid, int priority) {
   // pointer to process (need to use pid to actually obtain it)
-  struct proc *p;
-  // acquier mutex lock for process table
+  struct proc *proc;
+  // acquire mutex lock for process table
+  // since we modify information, we won't to make sure process info will not change
+  // before we have set the our proceess priority 
   acquire(&ptable.lock);
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+  for(proc = ptable.proc; proc < &ptable.proc[NPROC]; proc++) {
     // loop through ptable entries and find our process
     // using the pid given
-    if(p->pid == pid) {
-      // use a mod to clamp values to range [0,39]
-      pid = (pid % 40 + 40) % 40;
+    if(proc->pid == pid) {
+      // use a mod to clamp values to range [0,39] for the priority
+      priority = (priority % 40 + 40) % 40;
+      // set the priority
+      proc->priority = priority;
+      // release the mutex lock on process table
       release(&ptable.lock);
       // exit out with a success val
       return 0;
     }
   }
-  // if we can't find the process just return an error
+  // if we can't find the process just return an error and release mutex
   release(&ptable.lock);
   return -1;
 }
+
+int get_priority(int pid) {
+  // pointer to process info 
+  struct proc *proc;
+  // loop through process table until we find our process id
+  for(proc = ptable.proc; proc < &ptable.proc[NPROC]; proc++) {
+    // found our process!
+    if(proc->pid == pid) {
+      // return back the priority of the matched process
+      // NOTE: since we are just reading the process priority, 
+      // i won't acquire and release mutex on process table, it's not necessary...
+      return proc->priority;
+    }
+  }
+  // if we can't find the process by the pid, just return error val
+  return -1;
+}
+
