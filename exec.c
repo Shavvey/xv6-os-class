@@ -6,6 +6,7 @@
 #include "defs.h"
 #include "x86.h"
 #include "elf.h"
+#define DEFAULT_PRIOR 10
 
 int
 exec(char *path, char **argv)
@@ -97,6 +98,7 @@ exec(char *path, char **argv)
   proc->sz = sz;
   proc->tf->eip = elf.entry;  // main
   proc->tf->esp = sp;
+  proc->priority = DEFAULT_PRIOR;
   switchuvm(proc);
   freevm(oldpgdir);
   return 0;

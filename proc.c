@@ -48,7 +48,6 @@ allocproc(void)
 
 found:
   // assign default priority to process
-  p->priority = DEFAULT_PRIOR;
   p->state = EMBRYO;
   p->pid = nextpid++;
 
