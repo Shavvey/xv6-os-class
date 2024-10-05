@@ -103,7 +103,6 @@ int sys_set_priority(void) {
     // sys call fails also if second arg not passed
     return -1;
   } 
-  cprintf("Extract args-> PID: %d, Prior: %d\n", pid,priority);
   // preform syscall routine with args
   return set_priority(pid,priority);
 }
