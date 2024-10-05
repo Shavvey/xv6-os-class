@@ -27,6 +27,8 @@ int uptime(void);
 int set_priority(int pid, int priority);
 // another system call, return priority using pid
 int get_priority(int pid);
+// prints out the current state of the process table
+int cps(void);
 
 // ulib.c
 int stat(char*, struct stat*);

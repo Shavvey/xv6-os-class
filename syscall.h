@@ -24,3 +24,5 @@
 #define SYS_set_priority 22
 // another syscall added to table index
 #define SYS_get_priority 23
+// another one...
+#define SYS_cps 24

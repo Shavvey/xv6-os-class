@@ -33,3 +33,4 @@ SYSCALL(uptime)
 // uses trap instruction 'int' in x86 asm
 SYSCALL(set_priority)
 SYSCALL(get_priority)
+SYSCALL(cps)

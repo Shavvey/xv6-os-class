@@ -518,17 +518,38 @@ int set_priority(int pid, int priority) {
 int get_priority(int pid) {
   // pointer to process info 
   struct proc *proc;
+  acquire(&ptable.lock);
   // loop through process table until we find our process id
   for(proc = ptable.proc; proc < &ptable.proc[NPROC]; proc++) {
     // found our process!
     if(proc->pid == pid) {
+      int priority = proc->priority;
+      release(&ptable.lock);
       // return back the priority of the matched process
-      // NOTE: since we are just reading the process priority, 
-      // i won't acquire and release mutex on process table, it's not necessary...
-      return proc->priority;
+      return priority;
     }
   }
+  release(&ptable.lock);
   // if we can't find the process by the pid, just return error val
   return -1;
+}
+
+int cps(void) {
+  struct proc *proc;
+  // acquire to mutex of process table to avoid 
+  // concurrency issue with writers messing up reads
+  acquire(&ptable.lock);
+  // loop over the porcess table using pid
+  for (proc = ptable.proc; proc < &ptable.proc[NPROC]; proc++) {
+		if(proc->state == SLEEPING)
+			cprintf("%s \t %d \t SLEEEPING \t %d \n", proc->name, proc->pid, proc->priority);
+		else if(proc->state == RUNNING)
+			cprintf("%s \t %d \t RUNNING \t %d \n", proc->name, proc->pid, proc->priority);
+		else if(proc->state == RUNNABLE)
+			cprintf("%s \t %d \t RUNNABLE \t %d \n", proc->name, proc->pid, proc->priority);
+  }
+  // release the mutex
+  release(&ptable.lock);
+  return 0;
 }
 

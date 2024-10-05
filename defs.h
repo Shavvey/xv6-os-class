@@ -120,6 +120,8 @@ void            yield(void);
 int             set_priority(int,int);
 // another one
 int             get_priority(int);
+// cps function prints out state of process table
+int             cps(void); 
 
 // swtch.S
 void            swtch(struct context**, struct context*);
