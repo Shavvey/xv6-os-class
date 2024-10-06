@@ -50,6 +50,7 @@ found:
   // assign default priority to process
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->priority = DEFAULT_PRIOR;
 
   release(&ptable.lock);
 
@@ -337,7 +338,7 @@ scheduler(void)
   for(;;){
     // Enable interrupts on this processor.
     sti();
-    priority();
+    round_robin();
   }
 }
 
