@@ -279,17 +279,9 @@ wait(void)
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
-void
-scheduler(void)
-{
-  struct proc *p;
-
-  for(;;){
-    // Enable interrupts on this processor.
-    sti();
-
-    // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
+void round_robin(void) {
+    struct proc *p;
+    // loop over the proceses table and find somehting that is runnable
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
@@ -307,10 +299,52 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       proc = 0;
     }
-    release(&ptable.lock);
+}
 
+void priority(void) {
+  struct proc *p;
+  // used to loop over each process inside process table
+  struct proc *cp;
+    // loop over the proceses table and find somehting that is runnable
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if(p->state == RUNNABLE)
+      break;
+  }
+  // loop over process table, find most highest priority and choose that process
+  // IF that process if runnable
+  for (cp = ptable.proc; cp < &ptable.proc[NPROC]; cp++) {
+    if(cp->priority > p->priority && cp->state == RUNNABLE) {
+      p = cp;
+      // indicate that we can find a process using priority sched
+    }
+  }
+  // Switch to chosen process.  It is the process's job
+  // to release ptable.lock and then reacquire it
+  // before jumping back to us.
+  proc = p;
+  switchuvm(p);
+  p->state = RUNNING;
+  swtch(&cpu->scheduler, p->context);
+  switchkvm();
+
+  // Process is done running for now.
+  // It should have changed its p->state before coming back.
+  proc = 0;
+}
+
+void
+scheduler(void)
+{
+
+  for(;;){
+    // Enable interrupts on this processor.
+    sti();
+    acquire(&ptable.lock);
+    round_robin();
+    release(&ptable.lock);
   }
 }
+
 
 // Enter scheduler.  Must hold only ptable.lock
 // and have changed proc->state. Saves and restores
