@@ -1,0 +1,122 @@
+# Exercise 1 (10 points): Add a system call int cps() to display the current status of
+processes in the system (the code of cps() can be downloaded on Canvas). Then
+create a user-level program ps.c to display the current process status by calling cps().
+
+#OUTPUT 
+
+Booting from Hard Disk..xv6...
+cpu0: starting
+sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
+init: starting sh
+$ ls
+.              1 1 512
+..             1 1 512
+README         2 2 2487
+cat            2 3 13900
+echo           2 4 12864
+forktest       2 5 7952
+grep           2 6 15736
+init           2 7 13548
+kill           2 8 12956
+ln             2 9 12836
+ls             2 10 15168
+mkdir          2 11 12952
+rm             2 12 12932
+sh             2 13 23044
+stressfs       2 14 13732
+usertests      2 15 57092
+wc             2 16 14556
+zombie         2 17 12632
+lab2test       2 18 14528
+ps             2 19 12552
+nice           2 20 13632
+lab3test       2 21 13648
+console        3 22 0
+$ ps
+init 	 1 	 SLEEEPING 	 20
+sh 	   2 	 SLEEEPING 	 20
+ps 	   4 	 RUNNING 	   20
+
+# Exercise 2 (10 points): Write a user-level program nice.c that will accept two
+arguments: pid and priority which will change the nice value of the process with
+process id pid to priority, i.e. nice pid priority.
+
+#OUTPUT (NOTE: I dont make the parent wait for child processes to finish, so some zombie processes are created)
+
+Booting from Hard Disk..xv6...
+cpu0: starting
+sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
+init: starting sh
+$ lab3test 4 &
+$ Parent 4 creating child 5
+Parent 4 creating child 6
+Parent 4 creating child 7
+Child 6 created
+Child 7 created
+Child 5 created
+Parent 4 creating child 8
+Child 8 created
+zombie!
+ps
+init 	     1 	 SLEEEPING 	 20
+sh 	       2 	 SLEEEPING 	 20
+lab3test 	 5 	 RUNNABLE 	 20
+ps 	       9 	 RUNNING 	   10
+lab3test 	 6 	 RUNNABLE 	 20
+lab3test 	 7 	 RUNNABLE 	 20
+lab3test 	 8 	 RUNNABLE 	 20
+$ nice 5 18
+Setting new priority: 18 for process ID: 5
+New priority: 18 for PID: 5
+$ ps
+init 	     1 	 SLEEEPING 	 20
+sh 	       2 	 SLEEEPING 	 20
+lab3test 	 5 	 RUNNABLE 	 18
+ps 	       11  RUNNING 	   20
+lab3test 	 6 	 RUNNABLE 	 20
+lab3test 	 7 	 RUNNABLE 	 20
+lab3test 	 8 	 RUNNABLE 	 20
+
+# Exercise 3 (10 points): Modify lab3test.c so that the parent process waits for the
+child process. We can then observe how round-robin scheduling works by doing the
+following:
+$ lab3test &; lab3test &; lab3test &
+$ ps
+$ ps
+...
+You can run ps muiple times at random time intervals. Perform the test and copy and
+paste the command and outputs to your lab report. Explain your observations.
+
+#OUTPUT
+
+Booting from Hard Disk..xv6...
+cpu0: starting
+sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
+init: starting sh
+$ lab3test &; lab3test &; lab3test &
+Parent 7 creating child 9
+$ Child 9 created
+Parent 8 creating child 10
+Parent 5 creating child 11
+Child 10 created
+Child 11 created
+ps
+init 	     1 	 SLEEEPING 	 10
+sh 	       2 	 SLEEEPING 	 10
+lab3test 	 9 	 RUNNABLE 	 20
+lab3test 	 8 	 SLEEEPING 	 10
+lab3test 	 5 	 SLEEEPING 	 10
+lab3test 	 7 	 SLEEEPING 	 10
+lab3test 	 10  RUNNABLE 	 20
+lab3test 	 11  RUNNABLE 	 20
+ps 	       12  RUNNING 	   10
+$ ps
+init 	     1 	 SLEEEPING 	 10
+sh 	       2 	 SLEEEPING 	 10
+lab3test 	 9 	 RUNNABLE 	 20
+lab3test 	 8 	 SLEEEPING 	 10
+lab3test 	 5 	 SLEEEPING 	 10
+lab3test 	 7 	 SLEEEPING 	 10
+lab3test 	 10  RUNNABLE 	 20
+lab3test 	 11  RUNNABLE 	 20
+ps 	       13  RUNNING 	   10

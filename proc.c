@@ -155,14 +155,13 @@ fork(void)
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
-    // inherit the process priority of the parent
-    np->priority = proc->priority;
     return -1;
   }
   np->sz = proc->sz;
   np->parent = proc;
   *np->tf = *proc->tf;
-
+  // inherit the process priority of the parent
+  np->priority = proc->priority;
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 

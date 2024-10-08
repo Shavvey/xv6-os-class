@@ -1,0 +1,8 @@
+Start Time Lab
+Date Time Spent Part Work completed
+---- ----- ---- ---- ---------
+9/29 10:15  1:00 1   Read assignment did the first exercise (implementing cps)
+9/30 11:00  3:00 2   Finished impleting lab3test userprogram and tested
+                     changing the nice/priority process values
+                     then created a userprogram 'lab2-test.c'to test syscalls.
+           ----

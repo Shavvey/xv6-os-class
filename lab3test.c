@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 		}
 		else if(id > 0){ // parent
 			printf(1, "Parent %d creating child %d\n", getpid(), id);
-      // wait(); // wait for completion of the child cpu-bound process
+      wait(); // wait for completion of the child cpu-bound process
 		} else{ // child
 			printf(1, "Child %d created\n", getpid());
 			for(z = 0; z < 80000000.0; z += 0.01)
