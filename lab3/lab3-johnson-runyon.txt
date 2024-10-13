@@ -5,4 +5,5 @@ Date Time Spent Part Work completed
 9/30 11:00  3:00 2   Finished impleting lab3test userprogram and tested
                      changing the nice/priority process values
                      then created a userprogram 'lab2-test.c'to test syscalls.
+10/11 10:00 1:00 3-4 Implemented priority scheduler
            ----
