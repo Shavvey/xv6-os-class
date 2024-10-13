@@ -157,11 +157,11 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
+  // inherit the process priority of the parent
+  np->priority = proc->priority;
   np->sz = proc->sz;
   np->parent = proc;
   *np->tf = *proc->tf;
-  // inherit the process priority of the parent
-  np->priority = proc->priority;
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 
@@ -337,7 +337,7 @@ scheduler(void)
   for(;;){
     // Enable interrupts on this processor.
     sti();
-    round_robin();
+    priority();
   }
 }
 
