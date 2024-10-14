@@ -283,7 +283,7 @@ void round_robin(void) {
     acquire(&ptable.lock);
     struct proc *p;
     // loop over the proceses table and find somehting that is runnable
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
       if(p->state != RUNNABLE)
         continue;
 
@@ -309,7 +309,7 @@ void priority(void) {
   struct proc *hp; // high priority process (might be prioritized if runnable)
   // first part is just like round robin
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-    if(p->state != RUNNING)
+    if(p->state != RUNNABLE)
       continue;
     // now try to find a high priority process than the runnable process we just pick
     // if so, scheduler that porcess instead, neglecting/starving the lower priority process
@@ -333,11 +333,11 @@ void priority(void) {
 void
 scheduler(void)
 {
-
-  for(;;){
+  cpu->proc = 0;
+  for(;;) {
     // Enable interrupts on this processor.
     sti();
-    round_robin();
+    priority();
   }
 }
 
@@ -568,10 +568,10 @@ int cps(void) {
   // acquire to mutex of process table to avoid 
   // concurrency issue with writers messing up reads
   acquire(&ptable.lock);
-  // loop over the porcess table using pid
+  // loop over the process table using pid
   for (proc = ptable.proc; proc < &ptable.proc[NPROC]; proc++) {
 		if(proc->state == SLEEPING)
-			cprintf("%s \t %d \t SLEEEPING \t %d \n", proc->name, proc->pid, proc->priority);
+			cprintf("%s \t %d \t SLEEPING \t %d \n", proc->name, proc->pid, proc->priority);
 		else if(proc->state == RUNNING)
 			cprintf("%s \t %d \t RUNNING \t %d \n", proc->name, proc->pid, proc->priority);
 		else if(proc->state == RUNNABLE)
