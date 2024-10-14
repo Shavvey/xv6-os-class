@@ -33,49 +33,37 @@ nice           2 20 13632
 lab3test       2 21 13648
 console        3 22 0
 $ ps
-init 	 1 	 SLEEEPING 	 20
-sh 	   2 	 SLEEEPING 	 20
+init 	 1 	 SLEEPING 	 20
+sh 	   2 	 SLEEPING 	 20
 ps 	   4 	 RUNNING 	   20
 
 # Exercise 2 (10 points): Write a user-level program nice.c that will accept two
 arguments: pid and priority which will change the nice value of the process with
-process id pid to priority, i.e. nice pid priority.
 
-#OUTPUT (NOTE: I dont make the parent wait for child processes to finish, so some zombie processes are created)
-
-Booting from Hard Disk..xv6...
+#OUTPUT
+xv6...
+cpu1: starting
 cpu0: starting
 sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
 init: starting sh
-$ lab3test 4 &
-$ Parent 4 creating child 5
-Parent 4 creating child 6
-Parent 4 creating child 7
+$ lab3test 4 &;
+$ Parent 5 creating child 6
 Child 6 created
-Child 7 created
-Child 5 created
-Parent 4 creating child 8
-Child 8 created
-zombie!
 ps
-init 	     1 	 SLEEEPING 	 20
-sh 	       2 	 SLEEEPING 	 20
-lab3test 	 5 	 RUNNABLE 	 20
-ps 	       9 	 RUNNING 	   10
-lab3test 	 6 	 RUNNABLE 	 20
-lab3test 	 7 	 RUNNABLE 	 20
-lab3test 	 8 	 RUNNABLE 	 20
+init 	 1 	 SLEEPING 	 20 
+sh 	 2 	 SLEEPING 	 20 
+lab3test 	 6 	 RUNNING 	 20 
+ps 	 7 	 RUNNING 	 20 
+lab3test 	 5 	 SLEEPING 	 20 
 $ nice 5 18
 Setting new priority: 18 for process ID: 5
 New priority: 18 for PID: 5
 $ ps
-init 	     1 	 SLEEEPING 	 20
-sh 	       2 	 SLEEEPING 	 20
-lab3test 	 5 	 RUNNABLE 	 18
-ps 	       11  RUNNING 	   20
-lab3test 	 6 	 RUNNABLE 	 20
-lab3test 	 7 	 RUNNABLE 	 20
-lab3test 	 8 	 RUNNABLE 	 20
+init 	 1 	 SLEEPING 	 20 
+sh 	 2 	 SLEEPING 	 20 
+lab3test 	 6 	 RUNNING 	 20 
+ps 	 9 	 RUNNING 	 20 
+lab3test 	 5 	 SLEEPING 	 18 
 
 # Exercise 3 (10 points): Modify lab3test.c so that the parent process waits for the
 child process. We can then observe how round-robin scheduling works by doing the
@@ -89,34 +77,137 @@ paste the command and outputs to your lab report. Explain your observations.
 
 #OUTPUT
 
-Booting from Hard Disk..xv6...
+cpu1: starting 
+cpu0: starting 
+sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58 init: starting sh 
+$ ps 
+init 	 1 	 SLEEPING 	 10 
+sh 	 2 	 SLEEPING 	 10 
+ps 	 3 	 RUNNING 	 10 
+$ lab3test &; lab3test &; lab3test &; 
+Parent 6 creating child 8 
+Child 8 created 
+Parent 9 creating child 12 
+$ Child 12 created 
+Parent 11 creating child 13
+Child 13 created
+nice 12 5
+Setting new priority: 5 for process ID: 12
+New priority: 5 for PID: 12
+$ ps
+init 	 1 	 SLEEPING 	 10 
+sh 	 2 	 SLEEPING 	 10 
+lab3test 	 13 	 RUNNABLE 	 10 
+lab3test 	 12 	 RUNNABLE 	 5 
+lab3test 	 6 	 SLEEPING 	 10 
+lab3test 	 8 	 RUNNING 	 10 
+lab3test 	 9 	 SLEEPING 	 10 
+lab3test 	 11 	 SLEEPING 	 10 
+ps 	 15 	 RUNNING 	 10 
+$ ps
+init 	 1 	 SLEEPING 	 10 
+sh 	 2 	 SLEEPING 	 10 
+lab3test 	 13 	 RUNNING 	 10 
+lab3test 	 12 	 RUNNABLE 	 5 
+lab3test 	 6 	 SLEEPING 	 10 
+lab3test 	 8 	 RUNNABLE 	 10 
+lab3test 	 9 	 SLEEPING 	 10 
+lab3test 	 11 	 SLEEPING 	 10 
+ps 	 16 	 RUNNING 	 10 
+$ ps
+init 	 1 	 SLEEPING 	 10 
+sh 	 2 	 SLEEPING 	 10 
+lab3test 	 13 	 RUNNABLE 	 10 
+lab3test 	 12 	 RUNNING 	 5 
+lab3test 	 6 	 SLEEPING 	 10 
+lab3test 	 8 	 RUNNABLE 	 10 
+lab3test 	 9 	 SLEEPING 	 10 
+lab3test 	 11 	 SLEEPING 	 10 
+ps 	 17 	 RUNNING 	 10 
+$ ps
+init 	 1 	 SLEEPING 	 10 
+sh 	 2 	 SLEEPING 	 10 
+lab3test 	 13 	 RUNNING 	 10 
+lab3test 	 12 	 RUNNABLE 	 5 
+lab3test 	 6 	 SLEEPING 	 10 
+lab3test 	 8 	 RUNNABLE 	 10 
+lab3test 	 9 	 SLEEPING 	 10 
+lab3test 	 11 	 SLEEPING 	 10 
+ps 	 18 	 RUNNING 	 10 
+
+# EXPLAINATION / OBSERVATIONS
+Changing the priority of process 12 to a higher priority 
+(for example here the value is 5--much higher than other processes in the system),
+unlike the priority scheduler, will not
+affect bias the scheduler. Each process has a chance to run, which is why
+invoking ps randomly we see different processes running.
+
+# Exercise 5 (10 points): Perform a test similar to exercise 3 to show that the simple
+priority scheduling works. You need to copy and paste the command and outputs to
+your lab report, and explain your observations.
+
+#OUTPUT
+cpu1: starting
 cpu0: starting
 sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
 init: starting sh
-$ lab3test &; lab3test &; lab3test &
-Parent 7 creating child 9
-$ Child 9 created
-Parent 8 creating child 10
-Parent 5 creating child 11
-Child 10 created
-Child 11 created
-ps
-init 	     1 	 SLEEEPING 	 10
-sh 	       2 	 SLEEEPING 	 10
-lab3test 	 9 	 RUNNABLE 	 20
-lab3test 	 8 	 SLEEEPING 	 10
-lab3test 	 5 	 SLEEEPING 	 10
-lab3test 	 7 	 SLEEEPING 	 10
-lab3test 	 10  RUNNABLE 	 20
-lab3test 	 11  RUNNABLE 	 20
-ps 	       12  RUNNING 	   10
 $ ps
-init 	     1 	 SLEEEPING 	 10
-sh 	       2 	 SLEEEPING 	 10
-lab3test 	 9 	 RUNNABLE 	 20
-lab3test 	 8 	 SLEEEPING 	 10
-lab3test 	 5 	 SLEEEPING 	 10
-lab3test 	 7 	 SLEEEPING 	 10
-lab3test 	 10  RUNNABLE 	 20
-lab3test 	 11  RUNNABLE 	 20
-ps 	       13  RUNNING 	   10
+init 	 1 	 SLEEPING 	 10 
+sh 	 2 	 SLEEPING 	 10 
+ps 	 3 	 RUNNING 	 10 
+$ lab3test &; lab3test &; lab3test &
+Parent 6 creating child 9
+Child 9 created
+Parent 8 creating child 10
+Child 10 created
+Parent 11 creating child 12
+Child 12 created
+$ nice 10 5
+Setting new priority: 5 for process ID: 10
+New priority: 5 for PID: 10
+$ ps
+init 	 1 	 SLEEPING 	 10 
+sh 	 2 	 SLEEPING 	 10 
+ps 	 21 	 RUNNING 	 10 
+lab3test 	 11 	 SLEEPING 	 10 
+lab3test 	 6 	 SLEEPING 	 10 
+lab3test 	 8 	 SLEEPING 	 10 
+lab3test 	 9 	 RUNNABLE 	 10 
+lab3test 	 10 	 RUNNING 	 5 
+lab3test 	 12 	 RUNNABLE 	 10 
+$ ps
+init 	 1 	 SLEEPING 	 10 
+sh 	 2 	 SLEEPING 	 10 
+ps 	 22 	 RUNNING 	 10 
+lab3test 	 11 	 SLEEPING 	 10 
+lab3test 	 6 	 SLEEPING 	 10 
+lab3test 	 8 	 SLEEPING 	 10 
+lab3test 	 9 	 RUNNABLE 	 10 
+lab3test 	 10 	 RUNNING 	 5 
+lab3test 	 12 	 RUNNABLE 	 10 
+$ ps
+init 	 1 	 SLEEPING 	 10 
+sh 	 2 	 SLEEPING 	 10 
+ps 	 23 	 RUNNING 	 10 
+lab3test 	 11 	 SLEEPING 	 10 
+lab3test 	 6 	 SLEEPING 	 10 
+lab3test 	 8 	 SLEEPING 	 10 
+lab3test 	 9 	 RUNNABLE 	 10 
+lab3test 	 10 	 RUNNING 	 5 
+lab3test 	 12 	 RUNNABLE 	 10 
+$ ps
+init 	 1 	 SLEEPING 	 10 
+sh 	 2 	 SLEEPING 	 10 
+ps 	 24 	 RUNNING 	 10 
+lab3test 	 11 	 SLEEPING 	 10 
+lab3test 	 6 	 SLEEPING 	 10 
+lab3test 	 8 	 SLEEPING 	 10 
+lab3test 	 9 	 RUNNABLE 	 10 
+lab3test 	 10 	 RUNNING 	 5 
+lab3test 	 12 	 RUNNABLE 	 10
+
+# EXPLAINATION / OBSERVATIONS
+During priority scheduling, we will always schedule a runnable process with the current highest priority.
+In this case we have set process 10 to have the highest prioirity (with a value of 5), so it
+will always be scheduled by the process. This is why whenever we invoke ps the higher priority
+process will be running, starving out other lower-priority processes and blocking them from getting cpu-time.
