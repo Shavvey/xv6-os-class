@@ -305,16 +305,19 @@ void round_robin(void) {
 
 void priority(void) {
   acquire(&ptable.lock);
-  struct proc *p = ptable.proc;
-  struct proc *cp;
-  int found = 0;
-  for (cp = ptable.proc; cp < &ptable.proc[NPROC]; cp++) {
-      if (cp->priority < p->priority && cp->state == RUNNABLE)  {
-        p = cp;
-        found = 1;
+  struct proc *p; // process picked via round_robin
+  struct proc *hp; // high priority process (might be prioritized if runnable)
+  // first part is just like round robin
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if(p->state != RUNNING)
+      continue;
+    // now try to find a high priority process than the runnable process we just pick
+    // if so, scheduler that porcess instead, neglecting/starving the lower priority process
+    for (hp = ptable.proc; hp < &ptable.proc[NPROC]; hp++) {
+        if (hp->priority < p->priority && hp->state == RUNNABLE) {
+          p = hp;
+        }
     }
-  }
-  if(found) {
     proc = p;
     switchuvm(p);
     p->state = RUNNING;
@@ -323,11 +326,8 @@ void priority(void) {
     // Process is done running for now.
     // It should have changed its p->state before coming back.
     proc = 0;
-    release(&ptable.lock);
-  } else {
-    release(&ptable.lock);
-    round_robin();
   }
+  release(&ptable.lock);
 }
 
 void
@@ -337,7 +337,7 @@ scheduler(void)
   for(;;){
     // Enable interrupts on this processor.
     sti();
-    priority();
+    round_robin();
   }
 }
 
