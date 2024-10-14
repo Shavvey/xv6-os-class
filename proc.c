@@ -337,7 +337,7 @@ scheduler(void)
   for(;;) {
     // Enable interrupts on this processor.
     sti();
-    round_robin();
+    priority();
   }
 }
 

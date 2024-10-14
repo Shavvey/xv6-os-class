@@ -41,29 +41,39 @@ ps 	   4 	 RUNNING 	   20
 arguments: pid and priority which will change the nice value of the process with
 
 #OUTPUT
-xv6...
 cpu1: starting
 cpu0: starting
 sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
 init: starting sh
-$ lab3test 4 &;
-$ Parent 5 creating child 6
-Child 6 created
+$ lab3test 4 &
+$ Parent 4 creating child 5
+Parent 4 creating child 6
+Parent 4 creating child 7
+PChild 6 created
+Carent 4 creatChild 5 created
+hiChild 8 created
+ild 7 created
+ng child 8
+zombie! (NOTE: haven't modified program so that parent waits for child, so zombie processes are created)
 ps
 init 	 1 	 SLEEPING 	 20 
 sh 	 2 	 SLEEPING 	 20 
-lab3test 	 6 	 RUNNING 	 20 
-ps 	 7 	 RUNNING 	 20 
-lab3test 	 5 	 SLEEPING 	 20 
+lab3test 	 5 	 RUNNING 	 20 
+ps 	 9 	 RUNNING 	 20 
+lab3test 	 6 	 RUNNABLE 	 20 
+lab3test 	 7 	 RUNNABLE 	 20 
+lab3test 	 8 	 RUNNABLE 	 20 
 $ nice 5 18
 Setting new priority: 18 for process ID: 5
 New priority: 18 for PID: 5
 $ ps
 init 	 1 	 SLEEPING 	 20 
 sh 	 2 	 SLEEPING 	 20 
+lab3test 	 5 	 RUNNABLE 	 18 
+ps 	 11 	 RUNNING 	 20 
 lab3test 	 6 	 RUNNING 	 20 
-ps 	 9 	 RUNNING 	 20 
-lab3test 	 5 	 SLEEPING 	 18 
+lab3test 	 7 	 RUNNABLE 	 20 
+lab3test 	 8 	 RUNNABLE 	 20 
 
 # Exercise 3 (10 points): Modify lab3test.c so that the parent process waits for the
 child process. We can then observe how round-robin scheduling works by doing the
