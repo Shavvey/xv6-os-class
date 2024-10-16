@@ -157,8 +157,9 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
-  // inherit the process priority of the parent
-  np->priority = proc->priority;
+  // NOTE: this was done for lab2, which specifies to modify the priority
+  // value to have a default of 20
+  np->priority = DEFAULT_PRIOR;
   np->sz = proc->sz;
   np->parent = proc;
   *np->tf = *proc->tf;
@@ -312,16 +313,18 @@ void priority(void) {
     if(p->state != RUNNABLE)
       continue;
     // now try to find a high priority process than the runnable process we just pick
-    // if so, scheduler that porcess instead, neglecting/starving the lower priority process
+    // if so, scheduler that process instead, neglecting/starving the lower priority process
     for (hp = ptable.proc; hp < &ptable.proc[NPROC]; hp++) {
         if (hp->priority < p->priority && hp->state == RUNNABLE) {
           p = hp;
         }
     }
     proc = p;
+    // preform the context switch, load user virtual mem
     switchuvm(p);
     p->state = RUNNING;
     swtch(&cpu->scheduler, p->context);
+    // switch back to kernel mode, load kernel virtual mem
     switchkvm();
     // Process is done running for now.
     // It should have changed its p->state before coming back.
@@ -333,7 +336,6 @@ void priority(void) {
 void
 scheduler(void)
 {
-  cpu->proc = 0;
   for(;;) {
     // Enable interrupts on this processor.
     sti();
