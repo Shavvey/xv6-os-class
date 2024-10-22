@@ -122,7 +122,9 @@ int             set_priority(int,int);
 int             get_priority(int);
 // cps function prints out state of process table
 int             cps(void); 
-
+void		thread_exit(void);
+int 		thread_create(void (*fn)(void *), void *stack, void *arg);
+int 		thread_join(void);
 // swtch.S
 void            swtch(struct context**, struct context*);
 

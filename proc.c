@@ -7,6 +7,18 @@
 #include "proc.h"
 #include "spinlock.h"
 
+
+
+struct proc* myproc(void) 
+{ 
+  struct cpu *c; 
+  pushcli(); 
+  // Disable interrupts to avoid race conditions 
+  c = &cpus[cpunum()]; 
+  popcli(); // Enable interrupts again 
+  return c->proc; }
+
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -582,5 +594,129 @@ int cps(void) {
   // release the mutex
   release(&ptable.lock);
   return 0;
+}
+
+int
+thread_create(void (*fn)(void*), void *stack, void *arg)
+{
+  int i;
+  struct proc *np;
+  struct proc *curproc = myproc();
+
+  // allocate the process
+  if((np = allocproc()) == 0)
+    return -1;
+
+  // make it so that the space is shared with the parent
+  np->pgdir = curproc->pgdir;
+  np->sz = curproc->sz;
+  np->parent = curproc;
+  *np->tf = *curproc->tf;
+
+  // create user stack
+  np->ustack = stack;
+  uint sp = (uint)stack + PGSIZE;
+
+  // push argument onto the stack
+  sp -= sizeof(arg);
+  *(uint*)sp = (uint)arg;
+
+  // push fake return address (0xFFFFFFFF, as given in lab)
+  sp -= sizeof(uint);
+  *(uint*)sp = 0xFFFFFFFF;
+
+  // set up the trap for the new thread
+  np->tf->eip = (uint)fn;    
+  np->tf->esp = sp;
+
+  // mark this process as a thread.
+  np->isthread = 1;
+
+  // inherit parents attributes
+  for(i = 0; i < NOFILE; i++)
+    if(curproc->ofile[i])
+      np->ofile[i] = filedup(curproc->ofile[i]);
+  np->cwd = idup(curproc->cwd);
+
+  safestrcpy(np->name, curproc->name, sizeof(curproc->name));
+
+  acquire(&ptable.lock);
+  np->state = RUNNABLE;
+  release(&ptable.lock);
+
+  return np->pid;
+}
+
+void
+thread_exit(void)
+{
+  struct proc *curproc = myproc();
+
+  if(curproc == initproc)
+    panic("init exiting");
+
+  // close all open files
+  int fd;
+  for(fd = 0; fd < NOFILE; fd++){
+    if(curproc->ofile[fd]){
+      fileclose(curproc->ofile[fd]);
+      curproc->ofile[fd] = 0;
+    }
+  }
+
+  // release current directory
+  begin_op();
+  iput(curproc->cwd);
+  end_op();
+  curproc->cwd = 0;
+
+  acquire(&ptable.lock);
+
+  // Wake up the parent thread if the thread is complete
+  wakeup1(curproc->parent);
+
+  // mark process as ZOMBIE and schedule more 
+  curproc->state = ZOMBIE;
+
+  // jump into the scheduler, and don't return 
+  sched();
+  panic("zombie exit");
+}
+
+int
+thread_join(void)
+{
+  struct proc *p;
+  int havekids, pid;
+  struct proc *curproc = myproc();
+
+  acquire(&ptable.lock);
+  for(;;){
+    // look for ZOMBIE thread
+    havekids = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->parent != curproc || !p->isthread)
+        continue;
+      havekids = 1;
+      if(p->state == ZOMBIE){
+        // Found one.
+        pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        p->state = UNUSED;
+        release(&ptable.lock);
+        return pid;
+      }
+    }
+
+    // wait only if childs exists
+    if(!havekids || curproc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // wait for children to exit.
+    sleep(curproc, &ptable.lock);
+  }
 }
 

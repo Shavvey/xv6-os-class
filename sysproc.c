@@ -119,3 +119,36 @@ int sys_get_priority(void) {
 int sys_cps(void) {
   return cps();
 }
+
+
+ int sys_thread_create(void) {
+    void (*fn)(void *);
+    void *stack;
+    void *arg;
+
+    // Fetch arguments from user space
+    if (argint(0, (int *)&fn) < 0 || argint(1, (int *)&stack) < 0 || argint(2, (int *)&arg) < 0) {
+        return -1; // Argument fetch failure
+    }
+
+    // Call the kernel function to create the thread
+    return thread_create(fn, stack, arg);
+}
+
+int sys_thread_exit(void) {
+    // Call the kernel function to exit the thread
+    thread_exit(); // This function should handle the thread termination logic.
+    return 0;      // This line is never reached because thread_exit does not return.
+}
+
+int sys_thread_join(void) {
+    int thread_id;
+
+    // Fetch the thread ID argument from user space
+    if (argint(0, &thread_id) < 0) {
+        return -1; // Argument fetch failure
+    }
+
+    // Call the kernel function to join the specified thread
+    return thread_join();
+}

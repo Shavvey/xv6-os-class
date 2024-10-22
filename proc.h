@@ -1,5 +1,7 @@
 #define MAX_PRIOR 40
 #define DEFAULT_PRIOR 20
+struct proc* myproc(void);
+
 // Per-CPU state
 struct cpu {
   uchar apicid;                // Local APIC ID
@@ -67,6 +69,10 @@ struct proc {
   char name[16];               // Process name (debugging)
   // new implemented priority in process info
   int priority;
+  // User stack for threading
+  char *ustack;
+  //thread flad
+  int isthread;
 };
 
 // Process memory is laid out contiguously, low addresses first:

@@ -34,3 +34,7 @@ SYSCALL(uptime)
 SYSCALL(set_priority)
 SYSCALL(get_priority)
 SYSCALL(cps)
+SYSCALL(thread_create)
+SYSCALL(thread_exit)
+SYSCALL(thread_join)
+
