@@ -36,7 +36,6 @@ int lock_acquire(struct lock_t *lk) {
     // use sleep to yield to the scheduler
     sleep(1);
   }
-  // prevent any interrupts from occuring--which would create a deadlock
   return 1;
 }
 

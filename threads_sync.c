@@ -42,7 +42,10 @@ void do_work(void *arg){
 int main(int argc, char *argv[]) {
   // initialize lock and zero out balance
   total.balance = 0;
-  lock_init(&total.lock);
+  if(lock_init(&total.lock) < 0) {
+    printf(2,"Could not intialize mutex!");
+    exit();
+  }
   struct balance b1 = {"b1", 3200};
   struct balance b2 = {"b2", 2800};
   void *s1, *s2;
