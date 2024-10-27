@@ -1,7 +1,8 @@
+#include "mutex.h"
 #include "types.h"
 #include "stat.h"
 #include "user.h"
-#include "mutex.h"
+
 struct balance {
     char name[32];
     int amount;
@@ -27,9 +28,11 @@ void do_work(void *arg){
     printf(1, "Starting do_work: s:%s\n", b->name);
 
     for (i = 0; i < b->amount; i++) { 
+         lock_acquire(&total.lock);
          old = total.balance;
          delay(100000);
          total.balance = old + 1;
+         lock_release(&total.lock);
     }
     printf(1, "Done s:%x\n", b->name);
     thread_exit();
