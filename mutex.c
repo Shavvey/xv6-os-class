@@ -6,10 +6,17 @@
 #include "proc.h"
 #include "spinlock.h"
 
-int __set_and_test(uint* lock) {
-  uint val = *lock; // test for lock val by dereffing pointer
-  *lock = 1; // set lock to true
-  return val;
+// this is the same code as spinlock
+static inline uint __xchg(uint* lock) {
+  uint result;
+  // The + in "+m" denotes a read-modify-write operand.
+  asm volatile("lock; xchgl %0, %1" :
+               "+m" (*lock), "=a" (result) :
+               "1" (1) :
+               "cc");
+  // the xchg function swaps the values of two variables
+  // this primitive operation serves as the locking mechanism
+  return result;
 }
 
 int lock_init(struct lock_t *lk) { 
@@ -25,11 +32,10 @@ int lock_init(struct lock_t *lk) {
 
 int lock_acquire(struct lock_t *lk) {
   // use set and test to see if mutex lock is available
-  while (__set_and_test(&lk->lock)) {
+  while (__xchg(&lk->lock)) {
     // use sleep to yield to the scheduler
-    sleep(5);
+    sleep(1);
   }
-  // cli();
   // prevent any interrupts from occuring--which would create a deadlock
   return 1;
 }
