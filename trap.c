@@ -15,6 +15,32 @@ struct spinlock tickslock;
 uint ticks;
 
 void
+handle_pgflt(void)
+{
+    uint fault_addr = rcr2(); 
+    pte_t *pte;
+    char *new_page;
+    struct run *old_page;
+
+    if((pte = walkpgdir(proc->pgdir, (void*)fault_addr, 0)) == 0)
+        panic("handle_pgflt: page table entry not found");
+
+    if((*pte & PTE_W) != 0)
+        panic("handle_pgflt: page is already writable");
+
+    uint pa = PTE_ADDR(*pte);
+    old_page = (struct run *)p2v(pa);
+
+    if((new_page = kalloc()) == 0)
+        panic("handle_pgflt: kalloc failed");
+    memmove(new_page, (char*)p2v(pa), PGSIZE);
+
+    decrement_ref_count(old_page);
+    *pte = v2p(new_page) | PTE_U | PTE_P | PTE_W;
+    lcr3(v2p(proc->pgdir));
+}
+
+void
 tvinit(void)
 {
   int i;
@@ -47,6 +73,11 @@ trap(struct trapframe *tf)
   }
 
   switch(tf->trapno){
+  case T_PGFLT:
+        proc->tf = tf;
+        handle_pgflt();
+        return;
+
   case T_IRQ0 + IRQ_TIMER:
     if(cpunum() == 0){
       acquire(&tickslock);

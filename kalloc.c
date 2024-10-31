@@ -9,11 +9,13 @@
 #include "mmu.h"
 #include "spinlock.h"
 
+int numFreePages;
 void freerange(void *vstart, void *vend);
 extern char end[]; // first address after kernel loaded from ELF file
 
 struct run {
   struct run *next;
+  int ref_count;
 };
 
 struct {
@@ -49,6 +51,7 @@ freerange(void *vstart, void *vend)
   p = (char*)PGROUNDUP((uint)vstart);
   for(; p + PGSIZE <= (char*)vend; p += PGSIZE)
     kfree(p);
+  numFreePages = (vend - vstart) / PGSIZE;
 }
 
 //PAGEBREAK: 21
@@ -60,6 +63,7 @@ void
 kfree(char *v)
 {
   struct run *r;
+ numFreePages++;
 
   if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
     panic("kfree");
@@ -87,10 +91,35 @@ kalloc(void)
   if(kmem.use_lock)
     acquire(&kmem.lock);
   r = kmem.freelist;
-  if(r)
+  if(r){
     kmem.freelist = r->next;
+    r->ref_count = 1;
+    numFreePages--;
+}
   if(kmem.use_lock)
     release(&kmem.lock);
   return (char*)r;
 }
 
+void increment_ref_count(struct run *page)
+{
+    if (kmem.use_lock)
+        acquire(&kmem.lock);
+    page->ref_count++;
+    if (kmem.use_lock)
+        release(&kmem.lock);
+}
+
+void decrement_ref_count(struct run *page)
+{
+    if (kmem.use_lock)
+        acquire(&kmem.lock);
+    page->ref_count--;
+    if (page->ref_count == 0) {
+        page->next = kmem.freelist;
+        kmem.freelist = page;
+        numFreePages++; 
+    }
+    if (kmem.use_lock)
+        release(&kmem.lock);
+}

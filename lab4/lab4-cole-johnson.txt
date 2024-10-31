@@ -1,0 +1,9 @@
+Start Time Lab
+Date Time Spent Part Work completed
+---- ----- ---- ---- ---------
+10/24  10:15  1:00 NA  Read assignment
+10/25  2:00   1:00 1   Reviewed threading code
+10/26  11:00  3:00 2   Implemented mutex lock 
+           ----
+           TOTAL HOURS: 5
+  

@@ -343,6 +343,33 @@ bad:
   return 0;
 }
 
+pde_t*
+copyuvm_cow(pde_t *pgdir, uint sz)
+{
+    pde_t *d;
+    pte_t *pte;
+    uint pa, i;
+    struct run *page;
+    if((d = setupkvm()) == 0)
+        return 0;
+
+    for(i = 0; i < sz; i += PGSIZE){
+        if((pte = walkpgdir(pgdir, (void *)i, 0)) == 0)
+            continue; 
+
+        if(!(*pte & PTE_P))
+            continue;
+        
+        pa = PTE_ADDR(*pte); 
+        page = (struct run *)p2v(pa);
+ *pte &= ~PTE_W;
+        mappages(d, (void*)i, PGSIZE, pa, PTE_U | PTE_P);
+        increment_ref_count(page);
+    }
+    lcr3(v2p(pgdir));
+    return d;
+}
+
 //PAGEBREAK!
 // Map user virtual address to kernel address.
 char*
