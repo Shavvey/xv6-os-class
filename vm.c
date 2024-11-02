@@ -361,12 +361,12 @@ copyuvm_cow(pde_t *pgdir, uint sz)
             continue;
         
         pa = PTE_ADDR(*pte); 
-        page = (struct run *)p2v(pa);
- *pte &= ~PTE_W;
+        page = (struct run *)P2V(pa);
+        *pte &= ~PTE_W;
         mappages(d, (void*)i, PGSIZE, pa, PTE_U | PTE_P);
         increment_ref_count(page);
     }
-    lcr3(v2p(pgdir));
+    lcr3(V2P(pgdir));
     return d;
 }
 
