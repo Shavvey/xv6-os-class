@@ -115,6 +115,8 @@ void decrement_ref_count(struct run *page)
     if (kmem.use_lock)
         acquire(&kmem.lock);
     page->ref_count--;
+    // if no references of page exist
+    // put page in freelist, deallocating it
     if (page->ref_count == 0) {
         page->next = kmem.freelist;
         kmem.freelist = page;
