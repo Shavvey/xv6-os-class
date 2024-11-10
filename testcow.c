@@ -24,7 +24,8 @@ main(void) {
       printf(1,"Number of free pages before write: %d\n", n);
       x = x + 1;
       y *= 2;
-      printf(1,"Number of free pages after write: %d\n");
+      n = getNumFreePages();
+      printf(1,"Number of free pages after write: %d\n",n);
       exit();
     }
   }
