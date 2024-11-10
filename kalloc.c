@@ -8,13 +8,16 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "spinlock.h"
+// PHYSTOP is highest address in physical mem,
+// left-shifting by PGSHIFT should get us the
+// number of physical frames
+#define TOTAL_PHYS_FRAMES PHYSTOP >> PGSHIFT
 
 void freerange(void *vstart, void *vend);
 extern char end[]; // first address after kernel loaded from ELF file
 
 struct run {
   struct run *next;
-  int ref_count;
 };
 
 struct {
@@ -22,7 +25,10 @@ struct {
   int use_lock;
   struct run *freelist;
   uint free_pages;
-  uint pg_refs[PHYSTOP >> PGSHIFT];
+  // table of page references, we can index this table via a physical page number,
+  // all we need to do is extract using V2P and shifting away offset (which is PGSHIFT)
+  // this can be done with a simple left-shift
+  uint pg_refs[TOTAL_PHYS_FRAMES];
 } kmem;
 
 // Initialization happens in two phases.
@@ -43,6 +49,8 @@ void
 kinit2(void *vstart, void *vend)
 {
   freerange(vstart, vend);
+  kmem.use_lock = 0;
+  kmem.free_pages = 0;
   kmem.use_lock = 1;
 }
 
@@ -79,17 +87,18 @@ kfree(char *v)
   r = (struct run*)v;
   // if there are more refs to the page, just remove references, 
   // dont deallocate yet
-  if(kmem.pg_refs[V2P(v) >> PGSHIFT] > 0)
-    kmem.pg_refs[V2P(v) >> PGSHIFT]--;
+  uint idx = V2P(v) >> PGSHIFT;
 
-
-  if(kmem.pg_refs[V2P(v) >> PGSHIFT] == 0) {
+  if(kmem.pg_refs[idx] == 0) {
   // Fill with junk to catch dangling refs.
     memset(v,1, PGSIZE);
     kmem.free_pages++;
     r->next = kmem.freelist;
     kmem.freelist = r;
   }
+
+  if(kmem.pg_refs[idx] > 0)
+    kmem.pg_refs[idx]--;
 
   if(kmem.use_lock)
     release(&kmem.lock);
@@ -105,10 +114,12 @@ kalloc(void)
   // acquire mutex on kernel mem
   if(kmem.use_lock)
     acquire(&kmem.lock);
+  // get page from free list, probably the head of this list
   r = kmem.freelist;
-  if(r){
+  if(r) {
+    // set new head
     kmem.freelist = r->next;
-    r->ref_count = 1;
+    // decrement the number of free pages we have
     kmem.free_pages--;
     uint idx = V2P((char*)r) >> PGSHIFT;
     // initially set page refs to just one
@@ -116,6 +127,7 @@ kalloc(void)
   }
   if(kmem.use_lock)
     release(&kmem.lock);
+  // return a pointer to new page, cast of byte/char pointer
   return (char*)r;
 }
 

@@ -183,6 +183,7 @@ UPROGS=\
 	_threads_nosync\
 	_threads_sync\
 	_test_free_pages\
+	_testcow\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
