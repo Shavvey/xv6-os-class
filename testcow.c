@@ -17,8 +17,9 @@ main(void) {
     if(id < 0) {
       printf(1,"%d failed in fork!\n", getpid());
     }
-   // child code
-    if (id == 0) {
+    if(id > 0) {
+      wait();
+    } else {
       uint n = getNumFreePages();
       printf(1,"Number of free pages before write: %d\n", n);
       x = x + 1;
@@ -27,7 +28,6 @@ main(void) {
       exit();
     }
   }
-
   // exit of out of program
   exit();
 }
