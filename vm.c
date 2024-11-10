@@ -358,7 +358,7 @@ copyuvm_cow(pde_t *pgdir, uint sz)
 
         if(!(*pte & PTE_P))
             continue;
-        // get page table address of forked process 
+        // get physical address of forked process 
         pa = PTE_ADDR(*pte); 
         // get rid of write page table perms
         *pte &= ~PTE_W;
