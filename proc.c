@@ -337,7 +337,7 @@ void priority(void)
     if (p->state != RUNNABLE)
       continue;
     // now try to find a high priority process than the runnable process we just pick
-    // if so, scheduler that process instead, neglecting/starving the lower priority process
+    // if so, schedule that process instead, neglecting/starving the lower priority process
     for (hp = ptable.proc; hp < &ptable.proc[NPROC]; hp++)
     {
       if (hp->priority < p->priority && hp->state == RUNNABLE)

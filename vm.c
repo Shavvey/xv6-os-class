@@ -379,6 +379,7 @@ void handle_pgflt(void) {
   // first check if VA that generated fault
   // 1: walkpagdir can find find it's page entry
   // 2: it exists at a LOWER address than kernbase
+  // (so it isn't referencing physical memory part of the kernel)
   
   if((pte = walkpgdir(proc->pgdir, (void*)fault_va,0)) == 0) {
     cprintf("[ERROR]: `walkpgdir` coudl not find pgdir corresponding to va! Killing process...\n");
@@ -399,11 +400,10 @@ void handle_pgflt(void) {
   }
 
   // check if page has write permission already
-  // just panic if we already have them enable
+  // just panic if we already have them enabled
   // NOTE: probably I more elegant way to handle this...
   if(*pte & PTE_W) {
     panic("[ERROR]: Faulting page already has write perms!\n");
-
   }
   // extract the PA 
   uint fault_pa = PTE_ADDR(*pte); // extract PA from page table
@@ -412,6 +412,7 @@ void handle_pgflt(void) {
   char *new_page;
   // there is at least 2 refs to this page, this process is the first write
   if (ref_count > 1) {
+    // give a new page to process, and start copying over the memory into new adresss space
     if((new_page = kalloc()) == 0) {
       cprintf("[ERROR]: Out of memory, cannot handle fault! Killing process...\n");
       // just kill the process
@@ -424,7 +425,7 @@ void handle_pgflt(void) {
     // since our process now longer holds refs to page decrement page refs counter
     decrement_ref_count(fault_pa);
   } else if(ref_count == 1) {
-    // just remove read restriction on page
+    // just remove read restriction on page, since no other process holds a reference
     *pte |= PTE_W;
   } else {
     cprintf("Page count ref %d\n", ref_count);
@@ -436,9 +437,8 @@ void handle_pgflt(void) {
   return;
 bad:
   // just kill the process if we encounter an error
-  // can't really do anything else...
   proc->killed = 1;
-  // early retrun out
+  // early return out
   return;
 }
 

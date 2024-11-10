@@ -12,6 +12,7 @@
 // left-shifting by PGSHIFT should get us the
 // number of physical frames
 #define TOTAL_PHYS_FRAMES PHYSTOP >> PGSHIFT
+#define GET_IDX(pa) (pa >> PGSHIFT)
 
 void freerange(void *vstart, void *vend);
 extern char end[]; // first address after kernel loaded from ELF file
@@ -42,6 +43,7 @@ kinit1(void *vstart, void *vend)
   initlock(&kmem.lock, "kmem");
   kmem.use_lock = 0;
   freerange(vstart, vend);
+  kmem.free_pages = TOTAL_PHYS_FRAMES;
 }
 
 void
@@ -50,6 +52,7 @@ kinit2(void *vstart, void *vend)
   freerange(vstart, vend);
   kmem.use_lock = 0;
   kmem.use_lock = 1;
+  kmem.free_pages = TOTAL_PHYS_FRAMES;
 }
 
 void
@@ -59,7 +62,7 @@ freerange(void *vstart, void *vend)
   p = (char*)PGROUNDUP((uint)vstart);
   // loop through range based on the pgsize
   for(; p + PGSIZE <= (char*)vend; p += PGSIZE) {
-    uint idx = V2P(p) >> PGSHIFT;
+    uint idx = GET_IDX(V2P(p));
     kmem.pg_refs[idx] = 0;
     kfree(p);
   }
@@ -85,10 +88,10 @@ kfree(char *v)
   r = (struct run*)v;
   // if there are more refs to the page, just remove references, 
   // dont deallocate yet
-  uint idx = V2P(v) >> PGSHIFT;
+  uint idx = GET_IDX(V2P(v));
 
   if(kmem.pg_refs[idx] == 0) {
-  // Fill with junk to catch dangling refs.
+    // Fill with junk to catch dangling refs.
     memset(v,1, PGSIZE);
     kmem.free_pages++;
     r->next = kmem.freelist;
@@ -119,7 +122,7 @@ kalloc(void)
     kmem.freelist = r->next;
     // decrement the number of free pages we have
     kmem.free_pages--;
-    uint idx = V2P((char*)r) >> PGSHIFT;
+    uint idx = GET_IDX(V2P((char *)r));
     // initially set page refs to just one
     kmem.pg_refs[idx] = 1;
   }
@@ -135,6 +138,7 @@ uint get_free_pages(void) {
   release(&kmem.lock);
   return free_pages;
 }
+
 void increment_ref_count(uint pa)
 {
     // first check to see if we are given a valid physical address
@@ -143,7 +147,7 @@ void increment_ref_count(uint pa)
       panic("[ERROR]: Panic! Invalid address!");
     } 
     acquire(&kmem.lock);
-    kmem.pg_refs[pa >> PGSHIFT]++;
+    kmem.pg_refs[GET_IDX(pa)]++;
     release(&kmem.lock);
 }
 
@@ -155,8 +159,12 @@ void decrement_ref_count(uint pa)
       panic("[ERROR]: Panic! Invalid address!");
     } 
     acquire(&kmem.lock);
-    kmem.pg_refs[pa >> PGSHIFT]--;
-    release(&kmem.lock);
+    uint pg_refs = --kmem.pg_refs[GET_IDX(pa)];
+    // free the memory if no more pages point to it
+    if (pg_refs == 0)
+      kfree(P2V(pa));
+
+   release(&kmem.lock);
 }
 
 uint get_reference_count(uint pa) {
@@ -166,7 +174,7 @@ uint get_reference_count(uint pa) {
     } 
     uint count;
     acquire(&kmem.lock);
-    count = kmem.pg_refs[pa >> PGSHIFT];
+    count = kmem.pg_refs[GET_IDX(pa)];
     release(&kmem.lock);
     return count;
 }
