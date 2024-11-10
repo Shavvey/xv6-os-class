@@ -161,5 +161,5 @@ int sys_thread_join(void)
 int
 sys_getNumFreePages(void)
 {
-return numFreePages;
+  return get_free_pages();
 }

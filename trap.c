@@ -14,31 +14,6 @@ extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
 
-void
-handle_pgflt(void)
-{
-    uint fault_addr = rcr2(); 
-    pte_t *pte;
-    char *new_page;
-    struct run *old_page;
-
-    if((pte = (pte_t*) walkpgdir(proc->pgdir, (void*)fault_addr, 0)) == 0)
-        panic("handle_pgflt: page table entry not found");
-
-    if((*pte & PTE_W) != 0)
-        panic("handle_pgflt: page is already writable");
-
-    uint pa = PTE_ADDR(*pte);
-    old_page = (struct run *)P2V(pa);
-
-    if((new_page = kalloc()) == 0)
-        panic("handle_pgflt: kalloc failed");
-    memmove(new_page, (char*)P2V(pa), PGSIZE);
-
-    decrement_ref_count(old_page);
-    *pte = V2P(new_page) | PTE_U | PTE_P | PTE_W;
-    lcr3(V2P(proc->pgdir));
-}
 
 void
 tvinit(void)
@@ -75,6 +50,7 @@ trap(struct trapframe *tf)
   switch(tf->trapno){
   case T_PGFLT:
         proc->tf = tf;
+        // call handle page fault
         handle_pgflt();
         return;
 

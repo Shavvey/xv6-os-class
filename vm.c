@@ -349,7 +349,6 @@ copyuvm_cow(pde_t *pgdir, uint sz)
     pde_t *d;
     pte_t *pte;
     uint pa, i;
-    struct run *page;
     if((d = setupkvm()) == 0)
         return 0;
 
@@ -359,15 +358,82 @@ copyuvm_cow(pde_t *pgdir, uint sz)
 
         if(!(*pte & PTE_P))
             continue;
-        
+        // get page table address of forked process 
         pa = PTE_ADDR(*pte); 
-        page = (struct run *)P2V(pa);
+        // get rid of write page table perms
         *pte &= ~PTE_W;
         mappages(d, (void*)i, PGSIZE, pa, PTE_U | PTE_P);
-        increment_ref_count(page);
+        // increase page table referecnes
+        increment_ref_count(pa);
     }
+    // place lcr3 at the top of lower-order page addr, hardware should flush TLB
     lcr3(V2P(pgdir));
     return d;
+}
+// NOTE: call this function inside trap.c to handle 
+// any page faults generated
+void handle_pgflt(void) {
+  // this reg points to page table
+  uint fault_va = rcr2();
+  pte_t *pte;
+  // first check if VA that generated fault
+  // is in a proper range and has a translation (
+  // 1: it exists at a LOWER address than kernbase
+  // (meaning it isn't trying to access/reference kernel mem)
+  // 2: walkpagdir can find find it's page entry
+  // )
+  
+  if((pte = walkpgdir(proc->pgdir, (void*)fault_va,0)) == 0) {
+    cprintf("[ERROR]: `walkpgdir` coudl not find pgdir corresponding to va! Killing process...\n");
+    goto bad;
+  }
+
+  if(fault_va >= KERNBASE && (*pte & PTE_U)) {
+    cprintf("[ERROR]: VA points to illegal address inside kernel mem! Killing process...\n");
+    goto bad;
+  }
+  // check to see if page table translation is valid and is part of a user process, otherwise error
+  if(!(*pte & PTE_P)) {
+    cprintf("[ERROR]: Page doesn't have a valid translation!\n");
+    goto bad;
+  }
+  // check if page has write permission already
+  // just panic if we already have them enable
+  // NOTE: probably I more elegant way to handle this...
+  uint fault_pa = PTE_ADDR(*pte); // extract PA from page table
+  uint ref_count = get_reference_count(fault_pa);
+  // begin allocating mem for new page
+  char *new_page;
+  // there is at least 2 refs to this page, this process is the first write
+  if (ref_count > 1) {
+    if((new_page = kalloc()) == 0) {
+      cprintf("[ERROR]: Out of memory, cannot handle fault! Killing process...\n");
+      // just kill the process
+      goto bad;
+    }
+    // copy address space using memmove
+    memmove(new_page, (char*)P2V(fault_pa),PGSIZE);
+    // now change page table entry to point to this new address space
+    *pte = V2P(new_page) | PTE_P | PTE_U | PTE_W; // add new flags too...
+    // since our process now longer holds refs to page decrement page refs counter
+    decrement_ref_count(fault_pa);
+  } else if(ref_count == 1) {
+    // just remove read restriction on page
+    *pte |= PTE_W;
+  } else {
+    cprintf("Page count ref %d\n", ref_count);
+    // something very bad happened, decrement logic is prob wrong
+    panic("Invalid page count reference! Something is afoot!\n");
+  }
+  // flush TLB cache since page table entries have now changed
+  lcr3(V2P(proc->pgdir));
+  return;
+bad:
+  // just kill the process if we encounter an error
+  // can't really do anything else...
+  proc->killed = 1;
+  // early retrun out
+  return;
 }
 
 //PAGEBREAK!
