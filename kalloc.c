@@ -51,8 +51,10 @@ freerange(void *vstart, void *vend)
 {
   char *p;
   p = (char*)PGROUNDUP((uint)vstart);
+  // loop through range based on the pgsize
   for(; p + PGSIZE <= (char*)vend; p += PGSIZE) {
-    kmem.pg_refs[V2P(p) >> PGSHIFT] = 0;
+    uint idx = V2P(p) >> PGSHIFT;
+    kmem.pg_refs[idx] = 0;
     kfree(p);
   }
 }
@@ -100,7 +102,7 @@ char*
 kalloc(void)
 {
   struct run *r;
-
+  // acquire mutex on kernel mem
   if(kmem.use_lock)
     acquire(&kmem.lock);
   r = kmem.freelist;
@@ -108,10 +110,10 @@ kalloc(void)
     kmem.freelist = r->next;
     r->ref_count = 1;
     kmem.free_pages--;
+    uint idx = V2P((char*)r) >> PGSHIFT;
     // initially set page refs to just one
-    kmem.pg_refs[V2P((char*)r) >> PGSHIFT] = 1;
+    kmem.pg_refs[idx] = 1;
   }
-
   if(kmem.use_lock)
     release(&kmem.lock);
   return (char*)r;
@@ -127,8 +129,8 @@ void increment_ref_count(uint pa)
 {
     // first check to see if we are given a valid physical address
     // AND the virtual address conversion is not out of bounds
-    if(pa >= PHYSTOP ||pa < (uint)V2P(end))  {
-      panic("Panic! Invalid address!");
+    if(pa >= PHYSTOP || pa < (uint)V2P(end))  {
+      panic("[ERROR]: Panic! Invalid address!");
     } 
     acquire(&kmem.lock);
     kmem.pg_refs[pa >> PGSHIFT]++;
@@ -139,18 +141,18 @@ void decrement_ref_count(uint pa)
 {
     // first check to see if we are given a valid physical address
     // AND the virtual address conversion is not out of bounds
-    if(pa >= PHYSTOP ||pa < (uint)V2P(end))  {
-      panic("Panic! Invalid address!");
+    if(pa >= PHYSTOP || pa < (uint)V2P(end))  {
+      panic("[ERROR]: Panic! Invalid address!");
     } 
     acquire(&kmem.lock);
-    kmem.pg_refs[pa >> PGSHIFT]++;
+    kmem.pg_refs[pa >> PGSHIFT]--;
     release(&kmem.lock);
 }
 
 uint get_reference_count(uint pa) {
   
-    if(pa >= PHYSTOP ||pa < (uint)V2P(end))  {
-      panic("Panic! Invalid address!");
+    if(pa >= PHYSTOP || pa < (uint)V2P(end))  {
+      panic("[ERROR]: Panic! Invalid address!");
     } 
     uint count;
     acquire(&kmem.lock);

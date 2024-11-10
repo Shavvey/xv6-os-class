@@ -377,29 +377,35 @@ void handle_pgflt(void) {
   uint fault_va = rcr2();
   pte_t *pte;
   // first check if VA that generated fault
-  // is in a proper range and has a translation (
-  // 1: it exists at a LOWER address than kernbase
-  // (meaning it isn't trying to access/reference kernel mem)
-  // 2: walkpagdir can find find it's page entry
-  // )
+  // 1: walkpagdir can find find it's page entry
+  // 2: it exists at a LOWER address than kernbase
   
   if((pte = walkpgdir(proc->pgdir, (void*)fault_va,0)) == 0) {
     cprintf("[ERROR]: `walkpgdir` coudl not find pgdir corresponding to va! Killing process...\n");
     goto bad;
   }
 
+  // user page is referencing something in the kernel, just kill process 
   if(fault_va >= KERNBASE && (*pte & PTE_U)) {
     cprintf("[ERROR]: VA points to illegal address inside kernel mem! Killing process...\n");
     goto bad;
   }
-  // check to see if page table translation is valid and is part of a user process, otherwise error
+
+  // check to see if page table translation is valid using PTE_P flag, 
+  // if translation is not valid, just kill the process
   if(!(*pte & PTE_P)) {
     cprintf("[ERROR]: Page doesn't have a valid translation!\n");
     goto bad;
   }
+
   // check if page has write permission already
   // just panic if we already have them enable
   // NOTE: probably I more elegant way to handle this...
+  if(*pte & PTE_W) {
+    panic("[ERROR]: Faulting page already has write perms!\n");
+
+  }
+  // extract the PA 
   uint fault_pa = PTE_ADDR(*pte); // extract PA from page table
   uint ref_count = get_reference_count(fault_pa);
   // begin allocating mem for new page
@@ -423,7 +429,7 @@ void handle_pgflt(void) {
   } else {
     cprintf("Page count ref %d\n", ref_count);
     // something very bad happened, decrement logic is prob wrong
-    panic("Invalid page count reference! Something is afoot!\n");
+    panic("[ERROR]: Invalid page count reference! Something is afoot!\n");
   }
   // flush TLB cache since page table entries have now changed
   lcr3(V2P(proc->pgdir));
