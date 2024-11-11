@@ -378,11 +378,11 @@ void handle_pgflt(void) {
   pte_t *pte;
   // first check if VA that generated fault
   // 1: walkpagdir can find find it's page entry
-  // 2: it exists at a LOWER address than kernbase
+  // 2: it exists at a LOWER address than kernel base mem
   // (so it isn't referencing physical memory part of the kernel)
   
   if((pte = walkpgdir(proc->pgdir, (void*)fault_va,0)) == 0) {
-    cprintf("[ERROR]: `walkpgdir` coudl not find pgdir corresponding to va! Killing process...\n");
+    cprintf("[ERROR]: `walkpgdir` could not find pgdir corresponding to va! Killing process...\n");
     goto bad;
   }
 
