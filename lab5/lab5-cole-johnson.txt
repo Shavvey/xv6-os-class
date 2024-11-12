@@ -1,0 +1,12 @@
+ESTIMATE: 10 hours
+Start Time Lab
+Date Time Spent Part Work completed
+---- ----- ---- ---- ---------
+11/3  10:15  1:00 NA  Read assignment
+11/5  11:00  2:00 2   Migrated free page counter into kmem
+11/8  4:00   4:00 3   Trying to implement page ref table, started on trap handler
+1//10 2:00   3:00 4   Finished trap hanlder, got ref table working
+11/11 3:15   1:30 5   Wrote testcow.c, collected resulst
+           ----
+           TOTAL HOURS: 10:30
+  

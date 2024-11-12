@@ -433,7 +433,6 @@ void handle_pgflt(void) {
       // just kill the process if we run out of memory
       goto bad;
     }
-    cprintf("Creating new page after modification\n");
     // copy address space using memmove
     memmove(new_page, (char*)P2V(fault_pa), PGSIZE);
     // now change page table entry to point to this new address space
