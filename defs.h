@@ -69,6 +69,7 @@ void            kfree(char*);
 void            kinit1(void*, void*);
 void            kinit2(void*, void*);
 uint            get_free_pages(void);
+uint            num_of_PhysPages(pde_t* pgdir, uint size);
 void            increment_ref_count(uint pa);
 void            decrement_ref_count(uint pa);
 uint            get_reference_count(uint pa);
