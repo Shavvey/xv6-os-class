@@ -422,13 +422,15 @@ void handle_pgflt(void) {
   // begin allocating mem for new page
   char *new_page;
   // there is at least 2 refs to this page, this process is the first write
+  // in this case we copy memory over to a new address space and page
+  // and decrement the old page's reference count
   if (ref_count > 1) {
     // creating new address space, so decrement page ref count
     decrement_ref_count(fault_pa);
     // give a new page to process, and start copying over the memory into new adresss space
     if((new_page = kalloc()) == 0) {
       cprintf("[ERROR]: Out of memory, cannot handle fault! Killing process...\n");
-      // just kill the process if we run out of memmory
+      // just kill the process if we run out of memory
       goto bad;
     }
     cprintf("Creating new page after modification\n");

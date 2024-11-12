@@ -13,22 +13,21 @@ main(void) {
     // create child process
     pid = fork(); 
     if (pid == 0) {
-      sleep(100 * c);
-      uint child_page_count_i = getNumFreePages();
       // modify x var, which will launch trap, which we allocate a new page to child proc
       x++;
       int j = 1;
       j++;
       // poll to see if page count has decreased (it should have)
-      uint child_page_count_f = getNumFreePages();
-      printf(1,"Change in page count after modify: %d\n", child_page_count_f - child_page_count_i);
+      uint child_page_count = getNumFreePages();
+      printf(1,"Change in free page count after modify: %d\n", child_page_count - initial_page_count);
       // child exit
       exit();
-    } else {
-      wait(); 
-    }
+    } 
   }
-  printf(1,"Change in page count after of all child processes: %d\n", getNumFreePages() - initial_page_count);
+  // wait for each child to terminate
+  int i;
+  for (i = 0; i < children; i++) wait();
+  printf(1,"Change in free page count after of all child processes have exited: %d\n", getNumFreePages() - initial_page_count);
   // parent exit
   exit();
 }

@@ -47,7 +47,6 @@ kinit1(void *vstart, void *vend)
 {
   initlock(&kmem.lock, "kmem");
   kmem.use_lock = 0;
-  kmem.pg_desc.free_pages = TOTAL_PHYS_FRAMES;
   freerange(vstart, vend);
 }
 
@@ -90,8 +89,8 @@ kfree(char *v)
   // convert addr to free page 
   r = (struct run*)v;
   uint idx = GET_IDX(V2P(v));
-  // if there are more refs to the page, just remove dec reference counter
-  // dont deallocate yet
+  // first we just decrment the ref counter, and then see if
+  // we still hold any more refs on the page
   if(kmem.pg_desc.pg_refs[idx] > 0)
     kmem.pg_desc.pg_refs[idx]--;
 
@@ -99,7 +98,8 @@ kfree(char *v)
   if(kmem.pg_desc.pg_refs[idx] == 0) {
     // Fill with junk to catch dangling refs.
     memset(v,1, PGSIZE);
-    kmem.pg_desc.free_pages = kmem.pg_desc.free_pages + 1;
+    // increment page count, since there should be a new available page
+    ++kmem.pg_desc.free_pages;
     r->next = kmem.freelist;
     kmem.freelist = r;
   }
@@ -124,7 +124,7 @@ kalloc(void)
     // set new head
     kmem.freelist = r->next;
     // decrement the number of free pages we have
-    kmem.pg_desc.free_pages = kmem.pg_desc.free_pages - 1;
+    --kmem.pg_desc.free_pages;
     uint idx = GET_IDX(V2P((char *)r));
     // initially set page refs to just one
     kmem.pg_desc.pg_refs[idx] = 1;
@@ -150,7 +150,7 @@ void increment_ref_count(uint pa)
       panic("[ERROR]: Panic! Invalid address!");
     } 
     acquire(&kmem.lock);
-    kmem.pg_desc.pg_refs[GET_IDX(pa)]++;
+    ++kmem.pg_desc.pg_refs[GET_IDX(pa)];
     release(&kmem.lock);
 }
 
@@ -162,12 +162,8 @@ void decrement_ref_count(uint pa)
       panic("[ERROR]: Panic! Invalid address!");
     } 
     acquire(&kmem.lock);
-    uint pg_refs = --kmem.pg_desc.pg_refs[GET_IDX(pa)];
-    // free the memory if no more pages point to it
-    if (pg_refs == 0)
-      kfree(P2V(pa));
-
-   release(&kmem.lock);
+    --kmem.pg_desc.pg_refs[GET_IDX(pa)];
+    release(&kmem.lock);
 }
 
 uint get_reference_count(uint pa) {
