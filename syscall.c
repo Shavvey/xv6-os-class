@@ -104,6 +104,7 @@ extern int sys_cps(void);
 extern int sys_thread_create(void);
 extern int sys_thread_exit(void);
 extern int sys_thread_join(void);
+extern int sys_getNumFreePages(void);
 
 static int (*syscalls[])(void) = {
   [SYS_fork]    sys_fork,
@@ -133,6 +134,7 @@ static int (*syscalls[])(void) = {
   [SYS_thread_create] sys_thread_create,
   [SYS_thread_exit] sys_thread_exit,
   [SYS_thread_join] sys_thread_join,
+  [SYS_getNumFreePages] sys_getNumFreePages,
 };
 // creating a table (similiar to the above table with function pointers to syscall routines)
 // that will get the name of each syscall via the index we extract using eax register

@@ -68,6 +68,11 @@ char*           kalloc(void);
 void            kfree(char*);
 void            kinit1(void*, void*);
 void            kinit2(void*, void*);
+uint            get_free_pages(void);
+uint            num_of_PhysPages(pde_t* pgdir, uint size);
+void            increment_ref_count(uint pa);
+void            decrement_ref_count(uint pa);
+uint            get_reference_count(uint pa);
 
 // kbd.c
 void            kbdintr(void);
@@ -185,6 +190,9 @@ void            freevm(pde_t*);
 void            inituvm(pde_t*, char*, uint);
 int             loaduvm(pde_t*, char*, struct inode*, uint, uint);
 pde_t*          copyuvm(pde_t*, uint);
+void            handle_pgflt();
+// new version of copyuvm called during fork, copies address space only after a write occurs
+pde_t*          copyuvm_cow(pde_t*, uint);
 void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);

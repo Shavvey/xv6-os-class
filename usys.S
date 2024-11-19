@@ -37,4 +37,4 @@ SYSCALL(cps)
 SYSCALL(thread_create)
 SYSCALL(thread_exit)
 SYSCALL(thread_join)
-
+SYSCALL(getNumFreePages)

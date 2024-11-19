@@ -32,6 +32,7 @@ int cps(void);
 int thread_create(void (*fn)(void*), void *stack, void *arg);
 void thread_exit(void) __attribute__((noreturn));
 int thread_join(void);
+int getNumFreePages(void);
 
 // ulib.c
 int stat(char*, struct stat*);

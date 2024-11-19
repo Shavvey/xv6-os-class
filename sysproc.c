@@ -157,3 +157,9 @@ int sys_thread_join(void)
   // join the specified thread
   return thread_join();
 }
+
+int
+sys_getNumFreePages(void)
+{
+  return get_free_pages();
+}

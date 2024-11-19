@@ -8,6 +8,14 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "spinlock.h"
+// just divide highest addres by the pgsize to obtain the total
+// number of physical frames we have, we can then createa a table
+// that counts the references to each underlying physical frames
+#define TOTAL_PHYS_FRAMES PHYSTOP / PGSIZE
+// useful macro that just shifts away offset bit to obtain
+// physical page number, this is then used as a index into table
+// that tracks all the references to that physical page
+#define GET_IDX(pa) (pa >> PGSHIFT)
 
 void freerange(void *vstart, void *vend);
 extern char end[]; // first address after kernel loaded from ELF file
@@ -20,6 +28,13 @@ struct {
   struct spinlock lock;
   int use_lock;
   struct run *freelist;
+  struct {
+    uint free_pages;
+    // table of page references, we can index this table via a physical page number,
+    // all we need to do is extract using V2P and shifting away offset (which is PGSHIFT)
+    // this can be done with a simple left-shift
+    uint pg_refs[TOTAL_PHYS_FRAMES];
+  } pg_desc;
 } kmem;
 
 // Initialization happens in two phases.
@@ -47,8 +62,12 @@ freerange(void *vstart, void *vend)
 {
   char *p;
   p = (char*)PGROUNDUP((uint)vstart);
-  for(; p + PGSIZE <= (char*)vend; p += PGSIZE)
+  // loop through range based on the pgsize
+  for(; p + PGSIZE <= (char*)vend; p += PGSIZE) {
+    uint idx = GET_IDX(V2P(p));
+    kmem.pg_desc.pg_refs[idx] = 0;
     kfree(p);
+  }
 }
 
 //PAGEBREAK: 21
@@ -64,14 +83,27 @@ kfree(char *v)
   if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
     panic("kfree");
 
-  // Fill with junk to catch dangling refs.
-  memset(v, 1, PGSIZE);
 
   if(kmem.use_lock)
-    acquire(&kmem.lock);
+   acquire(&kmem.lock);
+  // convert addr to free page 
   r = (struct run*)v;
-  r->next = kmem.freelist;
-  kmem.freelist = r;
+  uint idx = GET_IDX(V2P(v));
+  // first we just decrment the ref counter, and then see if
+  // we still hold any more refs on the page
+  if(kmem.pg_desc.pg_refs[idx] > 0)
+    kmem.pg_desc.pg_refs[idx]--;
+
+  // safe to free the page only if there is no more references held to it
+  if(kmem.pg_desc.pg_refs[idx] == 0) {
+    // Fill with junk to catch dangling refs.
+    memset(v,1, PGSIZE);
+    // increment page count, since there should be a new available page
+    ++kmem.pg_desc.free_pages;
+    r->next = kmem.freelist;
+    kmem.freelist = r;
+  }
+
   if(kmem.use_lock)
     release(&kmem.lock);
 }
@@ -83,14 +115,66 @@ char*
 kalloc(void)
 {
   struct run *r;
-
+  // acquire mutex on kernel mem
   if(kmem.use_lock)
     acquire(&kmem.lock);
+  // get page from free list, probably the head of this list
   r = kmem.freelist;
-  if(r)
+  if(r) {
+    // set new head
     kmem.freelist = r->next;
+    // decrement the number of free pages we have
+    --kmem.pg_desc.free_pages;
+    uint idx = GET_IDX(V2P((char *)r));
+    // initially set page refs to just one
+    kmem.pg_desc.pg_refs[idx] = 1;
+  }
   if(kmem.use_lock)
     release(&kmem.lock);
+  // return a pointer to new page, cast of byte/char pointer
   return (char*)r;
 }
 
+uint get_free_pages(void) {
+  acquire(&kmem.lock);
+  uint free_pages = kmem.pg_desc.free_pages;
+  release(&kmem.lock);
+  return free_pages;
+}
+
+void increment_ref_count(uint pa)
+{
+    // first check to see if we are given a valid physical address
+    // AND the virtual address conversion is not out of bounds
+    if(pa >= PHYSTOP || pa < (uint)V2P(end))  {
+      panic("[ERROR]: Panic! Invalid address!");
+    } 
+    acquire(&kmem.lock);
+    ++kmem.pg_desc.pg_refs[GET_IDX(pa)];
+    release(&kmem.lock);
+}
+
+void decrement_ref_count(uint pa)
+{
+    // first check to see if we are given a valid physical address
+    // AND the virtual address conversion is not out of bounds
+    if(pa >= PHYSTOP || pa < (uint)V2P(end))  {
+      panic("[ERROR]: Panic! Invalid address!");
+    } 
+    acquire(&kmem.lock);
+    --kmem.pg_desc.pg_refs[GET_IDX(pa)];
+    release(&kmem.lock);
+}
+
+uint get_reference_count(uint pa) {
+  
+    // first check to see if we are given a valid physical address
+    // AND the virtual address conversion is not out of bounds
+    if(pa >= PHYSTOP || pa < (uint)V2P(end))  {
+      panic("[ERROR]: Panic! Invalid address!");
+    } 
+    acquire(&kmem.lock);
+    uint count = kmem.pg_desc.pg_refs[GET_IDX(pa)];
+    release(&kmem.lock);
+    return count;
+}

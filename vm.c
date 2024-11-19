@@ -343,6 +343,118 @@ bad:
   return 0;
 }
 
+pde_t*
+copyuvm_cow(pde_t *pgdir, uint sz)
+{
+    pde_t *d;
+    pte_t *pte;
+    uint pa, i;
+    // setup kernel part of virtual mem and device space,
+    // return err and cleanup if call goes wrong somehow
+    if((d = setupkvm()) == 0)
+        goto bad;
+
+    for(i = 0; i < sz; i += PGSIZE){
+        if((pte = walkpgdir(pgdir, (void *)i, 0)) == 0)
+            panic("[ERROR]: copyuvm_cow: pte should exist"); 
+
+        if(!(*pte & PTE_P))
+            panic("[ERROR]: copyuvm_cow: page not present");
+
+        // get physical address of forked process 
+        pa = PTE_ADDR(*pte); 
+        // get rid of write page table perms
+        *pte &= ~PTE_W;
+        uint flags = PTE_FLAGS(*pte);
+        // creating new mapping, free if there is an error with mappages call
+        if (mappages(d, (void*)i, PGSIZE, pa, flags) < 0) 
+          goto bad;
+    
+        // increase page table referecnes
+        increment_ref_count(pa);
+    }
+    // place lcr3 at the top of lower-order page addr, hardware should flush TLB
+    lcr3(V2P(pgdir));
+    return d;
+bad:
+  lcr3(V2P(pgdir));
+  freevm(d);
+  return 0;
+}
+// NOTE: call this function inside trap.c to handle 
+// any page faults generated
+void handle_pgflt(void) {
+  // this reg points to page table
+  uint fault_va = rcr2();
+  pte_t *pte;
+  // first check if VA that generated fault
+  // 1: walkpagdir can find find it's page entry
+  // 2: it exists at a LOWER address than kernel base mem
+  // (so it isn't a user page referencing memory part of the kernel)
+  
+  if((pte = walkpgdir(proc->pgdir, (void*)fault_va,0)) == 0) {
+    cprintf("[ERROR]: `walkpgdir` could not find pgdir corresponding to va! Killing process...\n");
+    goto bad;
+  }
+
+  // user page is referencing something in the kernel, just kill process 
+  if(fault_va >= KERNBASE && (*pte & PTE_U)) {
+    cprintf("[ERROR]: VA points to illegal address inside kernel mem! Killing process...\n");
+    goto bad;
+  }
+
+  // check to see if page table translation is valid using PTE_P flag, 
+  // if translation is not valid, just kill the process
+  if(!(*pte & PTE_P)) {
+    cprintf("[ERROR]: Page doesn't have a valid translation!\n");
+    goto bad;
+  }
+
+  // check if page has write permission already
+  // just panic if we already have them enabled
+  // NOTE: probably I more elegant way to handle this...
+  if(*pte & PTE_W) {
+    panic("[ERROR]: Faulting page already has write perms!\n");
+  }
+  // extract the PA 
+  uint fault_pa = PTE_ADDR(*pte); // extract PA from page table
+  uint ref_count = get_reference_count(fault_pa); // obtain reference count
+  // begin allocating mem for new page
+  char *new_page;
+  // there is at least 2 refs to this page, this process is the first write
+  // in this case we copy memory over to a new address space and page
+  // and decrement the old page's reference count
+  if (ref_count > 1) {
+    // creating new address space, so decrement page ref count
+    decrement_ref_count(fault_pa);
+    // give a new page to process, and start copying over the memory into new adresss space
+    if((new_page = kalloc()) == 0) {
+      cprintf("[ERROR]: Out of memory, cannot handle fault! Killing process...\n");
+      // just kill the process if we run out of memory
+      goto bad;
+    }
+    // copy address space using memmove
+    memmove(new_page, (char*)P2V(fault_pa), PGSIZE);
+    // now change page table entry to point to this new address space
+    *pte = V2P(new_page) | PTE_P | PTE_U | PTE_W ; // add new flags too...
+  } else if(ref_count == 1) {
+    // just remove read restriction on page, since no other process holds a reference
+    *pte |= PTE_W;
+  } else {
+    cprintf("Page count ref %d\n", ref_count);
+    // something very bad happened, decrement logic is prob wrong
+    panic("[ERROR]: Invalid page count reference! Something is afoot!\n");
+  }
+  // flush TLB cache since page table entries have now changed
+  lcr3(V2P(proc->pgdir));
+  return;
+bad:
+  // just kill the process if we encounter an error
+  proc->killed = 1;
+  // early return out
+  return;
+}
+
 //PAGEBREAK!
 // Map user virtual address to kernel address.
 char*
