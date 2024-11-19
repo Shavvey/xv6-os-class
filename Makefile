@@ -182,11 +182,8 @@ UPROGS=\
 	_lab3test\
 	_threads_nosync\
 	_threads_sync\
-<<<<<<< HEAD
-=======
 	_test_free_pages\
 	_testcow\
->>>>>>> COW
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
