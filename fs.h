@@ -25,9 +25,9 @@ struct superblock {
 #define NINDIRECT (BSIZE / sizeof(uint))
 // number of addressable blocks for doubly indirect block
 // has 128 entries of indirect blocks, each with 128 entries of data blocks
-#define NDOUBLE_INDIRECT (NINDIRECT * NINDIRECT)
+#define NDOUBLY_INDIRECT (NINDIRECT * NINDIRECT)
 // change max file size according to new blocks we can address using double indirect
-#define MAXFILE (NDIRECT + NINDIRECT + NDOUBLE_INDIRECT)
+#define MAXFILE (NDIRECT + NINDIRECT + NDOUBLY_INDIRECT)
 
 // On-disk inode structure
 struct dinode {

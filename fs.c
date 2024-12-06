@@ -381,14 +381,15 @@ bmap(struct inode *ip, uint bn)
 
   bn -= NINDIRECT;
 
-  if (bn < NDOUBLE_INDIRECT) {
-    // load the double indirect block
+  if (bn < NDOUBLY_INDIRECT) {
+    // load the double indirect block (should very last block in addrs)
     if((addr = ip->addrs[NDIRECT + 1]) == 0) {
       // allocate if block doesn't exist yet
       ip->addrs[NDIRECT + 1] = addr = balloc(ip->dev);
     }
-    // get indirect block pointer
+    // get indirect block pointer (stored in double indirect block)
     bp = bread(ip->dev, addr);
+    brelse(bp); // catch bad block pointer
     a = (uint*)bp->data;
     
     // get indirect block entry 
@@ -401,16 +402,14 @@ bmap(struct inode *ip, uint bn)
       a[ib_entry] = addr = balloc(ip->dev);
       log_write(bp);
     }
-    brelse(bp);
     // get data block pointer
     bp = bread(ip->dev, addr);
+    brelse(bp); // catch bad block pointer
     a = (uint*)bp->data;
-     
     if((addr = a[b_entry]) == 0){
       a[b_entry] = addr = balloc(ip->dev);
       log_write(bp);
     }
-    brelse(bp);
     return addr;
   }
 
